@@ -39,7 +39,7 @@ final class MomoBirdWP_PostSource
         return array(
             'ID' => (int) $post->ID,
             'post_title' => (string) $post->post_title,
-            'rendered_html' => strip_shortcodes(do_blocks((string) $post->post_content)),
+            'rendered_html' => self::renderContent((string) $post->post_content),
             'permalink' => (string) get_permalink($post),
             'post_modified_gmt' => (string) $post->post_modified_gmt,
             'category' => MomoBirdWP_PostMapper::primaryCategory(
@@ -48,6 +48,28 @@ final class MomoBirdWP_PostSource
                 (int) get_option('default_category')
             ),
         );
+    }
+
+    // renderContent renders blocks and unwraps shortcodes: a shortcode that
+    // wraps text (page builders, [code], [caption]) keeps that text, one that
+    // stands alone (a gallery, an embed) is dropped. strip_shortcodes() would
+    // drop the wrapped text too, emptying page-builder posts.
+    public static function renderContent($content)
+    {
+        return self::unwrapShortcodes(do_blocks($content));
+    }
+
+    private static function unwrapShortcodes($content)
+    {
+        if (empty($GLOBALS['shortcode_tags']) || strpos($content, '[') === false) {
+            return $content;
+        }
+        return preg_replace_callback('/' . get_shortcode_regex() . '/s', function ($m) {
+            if ($m[1] === '[' && $m[6] === ']') {
+                return substr($m[0], 1, -1);
+            }
+            return isset($m[5]) && $m[5] !== '' ? self::unwrapShortcodes($m[5]) : '';
+        }, $content);
     }
 
     // find is load under the name MomoBirdWP_FullSyncRun and retries use.

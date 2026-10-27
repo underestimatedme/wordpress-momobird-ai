@@ -210,3 +210,21 @@ function selected($selected, $current = true, $echo = true)
 {
     return (string) $selected === (string) $current ? ' selected="selected"' : '';
 }
+
+$GLOBALS['shortcode_tags'] = array();
+
+function do_blocks($content)
+{
+    return $content;
+}
+
+// WordPress's own get_shortcode_regex(), so the plugin's shortcode handling is
+// tested against the real pattern.
+function get_shortcode_regex($tagnames = null)
+{
+    if (empty($tagnames)) {
+        $tagnames = array_keys($GLOBALS['shortcode_tags']);
+    }
+    $tagregexp = implode('|', array_map('preg_quote', $tagnames));
+    return '\\[(\\[?)(' . $tagregexp . ')(?![\\w-])([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)(?:(\\/)\\]|\\](?:([^\\[]*+(?:\\[(?!\\/\\2\\])[^\\[]*+)*+)\\[\\/\\2\\])?)(\\]?)';
+}
