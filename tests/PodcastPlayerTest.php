@@ -80,3 +80,24 @@ mb_test('podcast refresh is claimed only when the source id is missing and stale
     mb_assert(!mb_podcast_player($store)->claimRefresh(1760000000), 'claimed although source id is known');
 });
 
+
+mb_test('podcast script on a single public post even when a page cache skipped the content hook', function () {
+    // TypechoRedisCache and similar plugins serve the cached body, placeholder
+    // included, without running contentEx again.
+    $store = array('source_id' => MB_TEST_SOURCE_ID, 'checked_at' => 1760000000);
+    $player = mb_podcast_player($store);
+    mb_assert_same('', $player->script(true, false), 'script on a page that is not a single public post');
+    mb_assert_same('<script defer src="https://momobird.atlaspaces.com/widget/podcast.v1.js"></script>', $player->script(true, true), 'script missing on a cached single post');
+    mb_assert_same('', $player->script(true, true), 'script printed twice');
+    $empty = array();
+    mb_assert_same('', mb_podcast_player($empty)->script(true, true), 'script without a source id');
+    mb_assert_same('', mb_podcast_player($store)->script(false, true), 'script while disabled');
+});
+
+mb_test('the transcript is off unless the owner turns it on', function () {
+    $store = array('source_id' => MB_TEST_SOURCE_ID, 'checked_at' => 1760000000);
+    $off = mb_podcast_player($store)->placeholder(42, true, true, true, 'https://api.valley.atlaspaces.com');
+    mb_assert(strpos($off, 'data-transcript') === false, 'transcript requested by default: ' . $off);
+    $on = mb_podcast_player($store)->placeholder(42, true, true, true, 'https://api.valley.atlaspaces.com', true);
+    mb_assert(strpos($on, ' data-transcript="1"') !== false, 'transcript setting not passed to the player: ' . $on);
+});

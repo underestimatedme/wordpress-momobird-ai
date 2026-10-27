@@ -96,7 +96,7 @@ KEY sync_status (sync_status)
     public function failed($afterId = 0, $limit = 200)
     {
         return $this->db->get_results($this->db->prepare(
-            "SELECT * FROM {$this->table} WHERE post_id > 0 AND id > %d AND sync_status <> 'synced'
+            "SELECT * FROM {$this->table} WHERE post_id > 0 AND id > %d AND sync_status NOT IN ('synced','skipped_empty')
              AND NOT (sync_status LIKE 'pending\\_%%' AND last_attempt_at > %d)
              ORDER BY id ASC LIMIT %d",
             max(0, (int) $afterId),
@@ -108,7 +108,7 @@ KEY sync_status (sync_status)
     public function counts()
     {
         $rows = $this->db->get_results("SELECT sync_status, COUNT(*) AS count FROM {$this->table} WHERE post_id > 0 GROUP BY sync_status", ARRAY_A);
-        $counts = array('synced' => 0, 'failed_upsert' => 0, 'failed_delete' => 0, 'plan_required' => 0, 'pending_upsert' => 0, 'pending_delete' => 0);
+        $counts = array('synced' => 0, 'failed_upsert' => 0, 'failed_delete' => 0, 'plan_required' => 0, 'pending_upsert' => 0, 'pending_delete' => 0, 'skipped_empty' => 0);
         foreach ((array) $rows as $row) {
             $counts[$row['sync_status']] = (int) $row['count'];
         }
@@ -138,7 +138,7 @@ KEY sync_status (sync_status)
     public function recentError()
     {
         $row = $this->db->get_row("SELECT last_error_code, last_error_message, last_attempt_at FROM {$this->table}
-            WHERE post_id > 0 AND sync_status NOT IN ('synced','pending_upsert','pending_delete') ORDER BY last_attempt_at DESC LIMIT 1", ARRAY_A);
+            WHERE post_id > 0 AND sync_status NOT IN ('synced','skipped_empty','pending_upsert','pending_delete') ORDER BY last_attempt_at DESC LIMIT 1", ARRAY_A);
         if (!is_array($row)) {
             return null;
         }

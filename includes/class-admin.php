@@ -8,7 +8,7 @@ final class MomoBirdWP_Admin
 {
     const PAGE = 'momobird-ai';
     const GROUP = 'momobird_ai';
-    const CHECKBOXES = array('enabled', 'widget_enabled', 'podcast_enabled');
+    const CHECKBOXES = array('enabled', 'widget_enabled', 'podcast_enabled', 'podcast_transcript');
 
     public static function register()
     {
@@ -141,6 +141,16 @@ final class MomoBirdWP_Admin
                             <?php self::checkbox($name, 'enabled', $values, __('文章发布、修改、删除时自动同步', 'momobird-ai')); ?>
                             <?php self::checkbox($name, 'widget_enabled', $values, __('在前台显示问答助手', 'momobird-ai')); ?>
                             <?php self::checkbox($name, 'podcast_enabled', $values, __('在文章页显示播客播放器', 'momobird-ai')); ?>
+                            <?php self::checkbox($name, 'podcast_transcript', $values, __('播放器里显示播客文字稿', 'momobird-ai')); ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="momobird-position"><?php esc_html_e('问答助手位置', 'momobird-ai'); ?></label></th>
+                        <td>
+                            <select id="momobird-position" name="<?php echo esc_attr($name); ?>[widget_position]">
+                                <option value="right" <?php selected($values['widget_position'], 'right'); ?>><?php esc_html_e('右下角', 'momobird-ai'); ?></option>
+                                <option value="left" <?php selected($values['widget_position'], 'left'); ?>><?php esc_html_e('左下角', 'momobird-ai'); ?></option>
+                            </select>
                         </td>
                     </tr>
                 </table>
@@ -158,9 +168,11 @@ final class MomoBirdWP_Admin
                     <span>线上进度 <strong id="momobird-serving">—</strong></span>
                     <span>待开通 <strong id="momobird-plan-required">—</strong></span>
                     <span>上传失败 <strong id="momobird-failed-upsert">—</strong></span>
+                    <span>空文章已跳过 <strong id="momobird-skipped">—</strong></span>
                     <span>删除失败 <strong id="momobird-failed-delete">—</strong></span>
                     <span>最近全量同步 <strong id="momobird-last-sync">—</strong></span>
                 </div>
+                <p id="momobird-origin-warning" class="momobird-warning" hidden></p>
                 <p id="momobird-recent-error" hidden></p>
                 <p id="momobird-message" role="status"><?php esc_html_e('正在读取状态…', 'momobird-ai'); ?></p>
             </section>

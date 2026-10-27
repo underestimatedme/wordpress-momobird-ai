@@ -205,3 +205,8 @@ function get_post($post = null)
     $id = $post === null ? (isset($GLOBALS['mb_current_post']) ? $GLOBALS['mb_current_post'] : 0) : (is_object($post) ? $post->ID : (int) $post);
     return isset($GLOBALS['mb_posts'][$id]) ? $GLOBALS['mb_posts'][$id] : null;
 }
+
+function selected($selected, $current = true, $echo = true)
+{
+    return (string) $selected === (string) $current ? ' selected="selected"' : '';
+}

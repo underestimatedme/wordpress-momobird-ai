@@ -72,3 +72,12 @@ mb_test('hourly cron refreshes a stale assistant state where page views cannot',
     mb_assert_same('pub_2', $GLOBALS['mb_options']['momobird_ai_widget']['public_id'], 'cron did not refresh the assistant');
     mb_assert(strpos(mb_footer(), 'data-project="pub_2"') !== false, 'refreshed state not used');
 });
+
+mb_test('front end passes the assistant position and transcript setting', function () {
+    mb_front(array('widget_enabled' => '1', 'widget_position' => 'left', 'podcast_transcript' => '1'), array());
+    mb_assert(strpos(MomoBirdWP_Frontend::content('<p>正文</p>'), ' data-transcript="1"') !== false, 'transcript setting not passed');
+    mb_assert(strpos(mb_footer(), 'data-position="left"') !== false, 'left position not passed');
+    mb_front(array('widget_enabled' => '1'), array());
+    mb_assert(strpos(MomoBirdWP_Frontend::content('<p>正文</p>'), 'data-transcript') === false, 'transcript on by default');
+    mb_assert(strpos(mb_footer(), 'data-position') === false, 'position written by default');
+});

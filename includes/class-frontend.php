@@ -62,7 +62,7 @@ final class MomoBirdWP_Frontend
             }
             $post = get_post();
             $public = $post && $post->post_type === 'post' && $post->post_status === 'publish' && (string) $post->post_password === '';
-            return self::podcastPlayer()->placeholder($post ? (int) $post->ID : 0, true, $public, true, $config->baseUrl()) . $content;
+            return self::podcastPlayer()->placeholder($post ? (int) $post->ID : 0, true, $public, true, $config->baseUrl(), $config->podcastTranscript()) . $content;
         } catch (Throwable $error) {
             // The article must render even when the player cannot be placed.
             return $content;
@@ -79,11 +79,11 @@ final class MomoBirdWP_Frontend
             $now = time();
             if ($config->widgetEnabled()) {
                 $state = self::widgetState();
-                echo $state->snippet($now); // phpcs:ignore WordPress.Security.EscapeOutput -- built from a validated public id
+                echo $state->snippet($now, $config->widgetPosition()); // phpcs:ignore WordPress.Security.EscapeOutput -- built from a validated public id
                 self::$refreshWidget = self::canFinishResponseEarly() && $state->claimRefresh($now);
             }
             $player = self::podcastPlayer();
-            echo $player->script($config->podcastEnabled()); // phpcs:ignore WordPress.Security.EscapeOutput -- constant markup
+            echo $player->script($config->podcastEnabled(), self::onSinglePublicPost()); // phpcs:ignore WordPress.Security.EscapeOutput -- constant markup
             self::$refreshPodcast = $config->podcastEnabled() && self::canFinishResponseEarly() && $player->claimRefresh($now);
         } catch (Throwable $error) {
             // The page must never break because of the assistant.
@@ -132,6 +132,15 @@ final class MomoBirdWP_Frontend
         } catch (Throwable $error) {
             // Page views retry every ten minutes.
         }
+    }
+
+    private static function onSinglePublicPost()
+    {
+        if (!is_singular('post')) {
+            return false;
+        }
+        $post = get_post();
+        return $post && $post->post_status === 'publish' && (string) $post->post_password === '';
     }
 
     private static function canFinishResponseEarly()

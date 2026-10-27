@@ -97,7 +97,14 @@ final class MomoBirdWP_AdminController
                 return array_merge(array('ok' => true), call_user_func($this->statusContext['enable_widget']));
 
             case 'retry-failures':
-                return $this->sync->retryFailures(array($this->posts, 'find'), false);
+                $summary = $this->sync->retryFailures(array($this->posts, 'find'), false);
+                // The request itself succeeded; posts that still fail are reported by count
+                // (their reason is in recent_error), not as a failed request.
+                return array(
+                    'ok' => true,
+                    'retried' => isset($summary['retried']) ? (int) $summary['retried'] : 0,
+                    'failed' => isset($summary['failed']) ? (int) $summary['failed'] : 0
+                );
 
             default:
                 throw new InvalidArgumentException('Unknown MomoBird admin operation');

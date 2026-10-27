@@ -15,6 +15,7 @@ mb_test('unchecked boxes are saved as off', function () {
     mb_assert_same('0', $saved['enabled'], 'auto sync stayed on without its checkbox');
     mb_assert_same('0', $saved['widget_enabled'], 'widget on without its checkbox');
     mb_assert_same('0', $saved['podcast_enabled'], 'podcast on without its checkbox');
+    mb_assert_same('0', $saved['podcast_transcript'], 'transcript on without its checkbox');
     $saved = MomoBirdWP_Admin::sanitize(mb_settings_input(array('enabled' => '1', 'widget_enabled' => '1', 'podcast_enabled' => '1')));
     mb_assert_same(array('1', '1', '1'), array($saved['enabled'], $saved['widget_enabled'], $saved['podcast_enabled']), 'checked boxes lost');
 });

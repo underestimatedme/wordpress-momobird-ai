@@ -30,7 +30,7 @@ final class MomoBirdWP_PodcastPlayer
         self::$scripted = false;
     }
 
-    public function placeholder($cid, $isSinglePost, $isPublic, $enabled, $apiBase)
+    public function placeholder($cid, $isSinglePost, $isPublic, $enabled, $apiBase, $showTranscript = false)
     {
         $cid = (int) $cid;
         $sourceId = $this->sourceId();
@@ -39,12 +39,16 @@ final class MomoBirdWP_PodcastPlayer
         }
         self::$placed = true;
         return '<div class="momobird-podcast" data-source="' . $sourceId . '" data-post="' . $cid
-            . '" data-api="' . htmlspecialchars(rtrim((string) $apiBase, '/'), ENT_QUOTES, 'UTF-8') . '"></div>';
+            . '" data-api="' . htmlspecialchars(rtrim((string) $apiBase, '/'), ENT_QUOTES, 'UTF-8') . '"'
+            . ($showTranscript ? ' data-transcript="1"' : '') . '></div>';
     }
 
-    public function script($enabled)
+    // A page cache that keeps the body but re-runs the footer would leave a
+    // placeholder without a script, so a single public post always loads it.
+    public function script($enabled, $onSinglePublicPost = false)
     {
-        if (!$enabled || !self::$placed || self::$scripted) {
+        $wanted = self::$placed || ($onSinglePublicPost && $this->sourceId() !== '');
+        if (!$enabled || !$wanted || self::$scripted) {
             return '';
         }
         self::$scripted = true;

@@ -170,3 +170,12 @@ mb_test('ensure enabled keeps the status result when enabling fails', function (
     mb_assert_same('not_published', $result['reason'], 'failed enable replaced the status');
     mb_assert_same('not_published', $store['reason'], 'failed enable lost the cached status');
 });
+
+mb_test('snippet puts the assistant in the bottom-left corner when asked', function () {
+    $now = 1760000000;
+    $store = array('public_id' => 'pub_1', 'available' => true, 'reason' => 'ok', 'checked_at' => $now - 10);
+    $state = mb_widget_state($store);
+    mb_assert_same('<script defer src="https://momobird.atlaspaces.com/widget/loader.v1.js" data-project="pub_1" data-position="left"></script>', $state->snippet($now, 'left'), 'left position not passed to the loader');
+    mb_assert(strpos($state->snippet($now, 'right'), 'data-position') === false, 'right is the loader default and needs no attribute');
+    mb_assert(strpos($state->snippet($now, '" onload="x'), 'data-position') === false, 'unknown position was written out');
+});

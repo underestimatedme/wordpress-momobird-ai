@@ -57,6 +57,7 @@
       document.getElementById('momobird-synced-posts').textContent = String(payload.synced_posts || 0);
       document.getElementById('momobird-plan-required').textContent = String(payload.counts.plan_required || 0);
       document.getElementById('momobird-failed-upsert').textContent = String(payload.counts.failed_upsert || 0);
+      document.getElementById('momobird-skipped').textContent = String(payload.counts.skipped_empty || 0);
       document.getElementById('momobird-failed-delete').textContent = String(payload.counts.failed_delete || 0);
       document.getElementById('momobird-last-sync').textContent = payload.last_full_sync_at
         ? new Date(payload.last_full_sync_at * 1000).toLocaleString()
@@ -93,10 +94,16 @@
     var source = payload.source || {};
     document.getElementById('momobird-serving').textContent =
       '已上线 ' + (source.ready_document_count || 0) + ' / 已同步 ' + (source.document_count || 0);
+    // A mismatch is a standing problem, not an action result, so it gets its own line that
+    // later messages such as 连接成功 or 状态已更新 cannot overwrite.
+    var warning = document.getElementById('momobird-origin-warning');
     if (payload.origin_matches === false) {
-      setMessage('站点地址 ' + payload.blog_origin + ' 与控制台里填写的 ' + (source.site_url || '') +
-        ' 不一致，MomoBird 会拒绝这些文章。请在控制台按站点实际地址重新创建 WordPress 来源。', 'error');
-      return false;
+      warning.textContent = '站点地址 ' + payload.blog_origin + ' 与这个连接密钥所属来源的地址 ' + (source.site_url || '') +
+        ' 不一致，MomoBird 会拒绝上传的文章。请换成按站点实际地址创建的 WordPress 来源的密钥（可在控制台为它重新生成密钥）。';
+      warning.hidden = false;
+    } else {
+      warning.textContent = '';
+      warning.hidden = true;
     }
     if (payload.kind_warning) {
       setMessage('这个连接密钥属于控制台里的 ' + (source.kind || '其他') + ' 来源，不是 WordPress 来源。可以继续使用，但建议在控制台新建 WordPress 来源后换上它的密钥。', 'error');
@@ -169,7 +176,10 @@
 
   var simple = {
     test: {operation: 'test-connection', done: function () { return '连接成功。'; }},
-    retry: {operation: 'retry-failures', done: function (payload) { return '失败项重试完成，共处理 ' + (payload.retried || 0) + ' 项。'; }},
+    retry: {operation: 'retry-failures', done: function (payload) {
+      if (payload.failed > 0) return '失败项重试完成：处理 ' + (payload.retried || 0) + ' 项，其中 ' + payload.failed + ' 项仍然失败，原因见上方「最近错误」。';
+      return '失败项重试完成：处理 ' + (payload.retried || 0) + ' 项，全部成功。';
+    }},
     widget: {operation: 'enable-widget', done: function (payload) { return widgetText(payload) || '前台问答助手暂未开启：' + (payload.reason || ''); }}
   };
 
@@ -183,7 +193,7 @@
       setBusy(true);
       postAction(simple[action].operation, {}).then(function (payload) {
         var fine = action === 'test' ? showConnection(payload) : true;
-        if (fine) setMessage(simple[action].done(payload), 'success');
+        if (fine) setMessage(simple[action].done(payload), action === 'retry' && payload.failed > 0 ? 'error' : 'success');
         return refreshStatus();
       }).catch(function (error) {
         setMessage(error.message, 'error');

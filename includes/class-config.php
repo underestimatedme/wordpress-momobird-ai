@@ -12,10 +12,14 @@ final class MomoBirdWP_Config
     private $autoSync;
     private $widgetEnabled;
     private $podcastEnabled;
+    private $widgetPosition;
+    private $podcastTranscript;
 
-    private function __construct($baseUrl, $connectionKey, $timeout, $autoSync, $widgetEnabled, $podcastEnabled)
+    private function __construct($baseUrl, $connectionKey, $timeout, $autoSync, $widgetEnabled, $podcastEnabled, $widgetPosition, $podcastTranscript)
     {
         $this->podcastEnabled = $podcastEnabled;
+        $this->widgetPosition = $widgetPosition;
+        $this->podcastTranscript = $podcastTranscript;
         $this->baseUrl = $baseUrl;
         $this->connectionKey = $connectionKey;
         $this->timeout = $timeout;
@@ -31,6 +35,8 @@ final class MomoBirdWP_Config
         $autoSync = !isset($values['enabled']) || (string) $values['enabled'] !== '0';
         $widgetEnabled = isset($values['widget_enabled']) && (string) $values['widget_enabled'] === '1';
         $podcastEnabled = !isset($values['podcast_enabled']) || (string) $values['podcast_enabled'] !== '0';
+        $widgetPosition = isset($values['widget_position']) && (string) $values['widget_position'] === 'left' ? 'left' : 'right';
+        $podcastTranscript = isset($values['podcast_transcript']) && (string) $values['podcast_transcript'] === '1';
 
         self::validateBaseUrl($baseUrl);
         if (!preg_match(self::KEY_PATTERN, $connectionKey)) {
@@ -40,7 +46,7 @@ final class MomoBirdWP_Config
             throw new InvalidArgumentException('Timeout must be between 2 and 30 seconds');
         }
 
-        return new self(rtrim($baseUrl, '/'), $connectionKey, $timeout, $autoSync, $widgetEnabled, $podcastEnabled);
+        return new self(rtrim($baseUrl, '/'), $connectionKey, $timeout, $autoSync, $widgetEnabled, $podcastEnabled, $widgetPosition, $podcastTranscript);
     }
 
     public static function mergeForSave(array $stored, array $submitted)
@@ -81,7 +87,9 @@ final class MomoBirdWP_Config
             'timeout' => 10,
             'enabled' => '1',
             'widget_enabled' => '0',
-            'podcast_enabled' => '1'
+            'podcast_enabled' => '1',
+            'widget_position' => 'right',
+            'podcast_transcript' => '0'
         );
     }
 
@@ -115,6 +123,16 @@ final class MomoBirdWP_Config
         return $this->podcastEnabled;
     }
 
+    public function widgetPosition()
+    {
+        return $this->widgetPosition;
+    }
+
+    public function podcastTranscript()
+    {
+        return $this->podcastTranscript;
+    }
+
     // secretPrefix is what the settings page shows instead of the key.
     public function secretPrefix()
     {
@@ -129,7 +147,9 @@ final class MomoBirdWP_Config
             'timeout' => $this->timeout,
             'enabled' => $this->autoSync ? '1' : '0',
             'widget_enabled' => $this->widgetEnabled ? '1' : '0',
-            'podcast_enabled' => $this->podcastEnabled ? '1' : '0'
+            'podcast_enabled' => $this->podcastEnabled ? '1' : '0',
+            'widget_position' => $this->widgetPosition,
+            'podcast_transcript' => $this->podcastTranscript ? '1' : '0'
         );
     }
 }

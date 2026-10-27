@@ -253,3 +253,14 @@ mb_test('enable widget runs the configured action', function () {
     mb_assert_same(true, $result['available'], 'widget state not returned');
     mb_assert_same(true, $result['ok'], 'ok flag missing');
 });
+
+mb_test('retry reports how many posts still fail without failing the request', function () {
+    $sync = new class {
+        public function retryFailures($finder, $automatic = true)
+        {
+            return array('ok' => false, 'retried' => 4, 'failed' => 1, 'extra' => 'x');
+        }
+    };
+    $result = mb_admin_controller(new MomoBirdWP_AdminTestClient(), $sync)->dispatch('retry-failures', array());
+    mb_assert_same(array('ok' => true, 'retried' => 4, 'failed' => 1), $result, 'retry result shape');
+});

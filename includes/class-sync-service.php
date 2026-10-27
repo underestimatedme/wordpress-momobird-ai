@@ -27,10 +27,7 @@ final class MomoBirdWP_SyncService
         $postId = (int) $post['ID'];
         $mapped = MomoBirdWP_PostMapper::mapPost($post, $this->siteOrigin);
         if ($mapped === null) {
-            $this->state->markFailure($postId, 'failed_upsert', 'empty_content', 'Article content or permalink is empty');
-            $summary = $this->summary(false, array('code' => 'empty_content', 'message' => 'Article content or permalink is empty'));
-            $summary['skipped'] = 1;
-            return $summary;
+            return $this->skipEmpty($postId);
         }
         $existing = $this->state->forPost($postId);
         // A pending row keeps the hash it was synced with, so an edit that changed nothing is not re-sent.
@@ -52,10 +49,7 @@ final class MomoBirdWP_SyncService
             $postId = (int) $post['ID'];
             $mapped = MomoBirdWP_PostMapper::mapPost($post, $this->siteOrigin);
             if ($mapped === null) {
-                // A permanent per-post problem: record it and keep the rest of the run going.
-                $this->state->markFailure($postId, 'failed_upsert', 'empty_content', 'Article content or permalink is empty');
-                $total['ok'] = false;
-                $total['skipped']++;
+                $total = $this->merge($total, $this->skipEmpty($postId));
                 continue;
             }
             $size = strlen((string) json_encode($mapped, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
@@ -87,6 +81,23 @@ final class MomoBirdWP_SyncService
         $this->state->remove($postId);
         $summary = $this->summary(true, null);
         $summary['deleted'] = 1;
+        return $summary;
+    }
+
+    // A post with no body has nothing to answer from: not an upload failure, just skipped.
+    // If an earlier version of it was uploaded, remove that copy first.
+    private function skipEmpty($postId)
+    {
+        $existing = $this->state->forPost($postId);
+        $summary = $this->summary(true, null);
+        if ($existing && $existing['sync_status'] === 'synced') {
+            $summary = $this->deletePost($postId);
+            if (!$summary['ok']) {
+                return $summary;
+            }
+        }
+        $this->state->markFailure($postId, 'skipped_empty', 'empty_content', 'Article body is empty; skipped');
+        $summary['skipped'] = 1;
         return $summary;
     }
 

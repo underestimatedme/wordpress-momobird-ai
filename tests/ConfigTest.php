@@ -82,3 +82,22 @@ mb_test('secret prefix shows only the start of the key', function () {
     $config = MomoBirdWP_Config::fromArray(mb_valid_config());
     mb_assert_same('mbk_kkkk', $config->secretPrefix(), 'secret prefix wrong');
 });
+
+mb_test('assistant position is right unless left is chosen', function () {
+    mb_assert_same('right', MomoBirdWP_Config::fromArray(mb_valid_config())->widgetPosition(), 'default position');
+    $left = mb_valid_config();
+    $left['widget_position'] = 'left';
+    mb_assert_same('left', MomoBirdWP_Config::fromArray($left)->widgetPosition(), 'left ignored');
+    $odd = mb_valid_config();
+    $odd['widget_position'] = '" onload="x';
+    mb_assert_same('right', MomoBirdWP_Config::fromArray($odd)->widgetPosition(), 'unknown position kept');
+    mb_assert_same('left', MomoBirdWP_Config::fromArray($left)->toArray()['widget_position'], 'position not saved');
+});
+
+mb_test('podcast transcript is off unless switched on', function () {
+    mb_assert_same(false, MomoBirdWP_Config::fromArray(mb_valid_config())->podcastTranscript(), 'transcript on by default');
+    $on = mb_valid_config();
+    $on['podcast_transcript'] = '1';
+    mb_assert_same(true, MomoBirdWP_Config::fromArray($on)->podcastTranscript(), 'transcript switch ignored');
+    mb_assert_same('1', MomoBirdWP_Config::fromArray($on)->toArray()['podcast_transcript'], 'transcript switch not saved');
+});
