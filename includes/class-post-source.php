@@ -50,6 +50,19 @@ final class MomoBirdWP_PostSource
         );
     }
 
+    // isPublicNow bypasses the object cache, which may still hold the post as
+    // it was when this request started.
+    public function isPublicNow($postId)
+    {
+        clean_post_cache((int) $postId);
+        $post = get_post((int) $postId);
+        return $post !== null && self::decide(array(
+            'post_type' => $post->post_type,
+            'post_status' => $post->post_status,
+            'post_password' => $post->post_password,
+        )) === 'upsert';
+    }
+
     // renderContent renders blocks and unwraps shortcodes: a shortcode that
     // wraps text (page builders, [code], [caption]) keeps that text, one that
     // stands alone (a gallery, an embed) is dropped. strip_shortcodes() would

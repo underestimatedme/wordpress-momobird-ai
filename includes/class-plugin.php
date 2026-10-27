@@ -182,7 +182,7 @@ final class MomoBirdWP_Plugin
             }
             return;
         }
-        $this->queue->flush($sync, array($this->source, 'load'));
+        $this->queue->flush($sync, array($this->source, 'load'), array($this->source, 'isPublicNow'));
     }
 
     public function onFlushCron()
@@ -193,7 +193,7 @@ final class MomoBirdWP_Plugin
         foreach ($this->state->pending() as $row) {
             $this->queue->add((int) $row['post_id'], $row['sync_status'] === 'pending_delete' ? 'delete' : 'upsert');
         }
-        $this->queue->flush($sync, array($this->source, 'load'));
+        $this->queue->flush($sync, array($this->source, 'load'), array($this->source, 'isPublicNow'));
     }
 
     public function onRetryCron()

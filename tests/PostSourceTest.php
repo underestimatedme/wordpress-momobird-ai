@@ -37,3 +37,12 @@ mb_test('shortcodes that wrap text keep the text; self-closing ones are dropped'
     $GLOBALS['shortcode_tags'] = array();
     mb_assert_same('[gallery ids="1"]', MomoBirdWP_PostSource::renderContent('[gallery ids="1"]'), 'text changed without registered shortcodes');
 });
+
+mb_test('is public now reads the post fresh from the database', function () {
+    $GLOBALS['mb_cleaned'] = array();
+    $GLOBALS['mb_posts'][80] = (object) array('ID' => 80, 'post_type' => 'post', 'post_status' => 'private', 'post_password' => '');
+    mb_assert_same(false, (new MomoBirdWP_PostSource())->isPublicNow(80), 'private post reported public');
+    mb_assert_same(array(80), $GLOBALS['mb_cleaned'], 'post cache not cleared before reading');
+    $GLOBALS['mb_posts'][80]->post_status = 'publish';
+    mb_assert_same(true, (new MomoBirdWP_PostSource())->isPublicNow(80), 'public post reported private');
+});

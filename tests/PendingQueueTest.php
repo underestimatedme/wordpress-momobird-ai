@@ -74,3 +74,26 @@ mb_test('a rejected post does not stop the flush', function () {
     $queue->flush(mb_sync_service($client, new MomoBirdWP_TestStateRepository()), mb_queue_loader());
     mb_assert_same(2, count($client->upserts), 'a per-post rejection stopped the flush');
 });
+
+mb_test('a post made private while its push was in flight is removed again', function () {
+    $client = new MomoBirdWP_TestClient();
+    $state = new MomoBirdWP_TestStateRepository();
+    $queue = new MomoBirdWP_PendingQueue();
+    $queue->add(71, 'upsert');
+    $queue->flush(mb_sync_service($client, $state), mb_queue_loader(), function ($id) {
+        return false;
+    });
+    mb_assert_same(1, count($client->upserts), 'post not pushed');
+    mb_assert_same(array(array('71')), $client->deletes, 'post that is no longer public stayed in MomoBird');
+    mb_assert(!isset($state->rows[71]), 'state still says synced');
+});
+
+mb_test('a post still public after its push is left alone', function () {
+    $client = new MomoBirdWP_TestClient();
+    $queue = new MomoBirdWP_PendingQueue();
+    $queue->add(72, 'upsert');
+    $queue->flush(mb_sync_service($client, new MomoBirdWP_TestStateRepository()), mb_queue_loader(), function ($id) {
+        return true;
+    });
+    mb_assert_same(array(), $client->deletes, 'public post deleted');
+});

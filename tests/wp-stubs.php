@@ -239,3 +239,8 @@ function spawn_cron()
 {
     $GLOBALS['mb_cron_spawned'] = (isset($GLOBALS['mb_cron_spawned']) ? $GLOBALS['mb_cron_spawned'] : 0) + 1;
 }
+
+function clean_post_cache($post)
+{
+    $GLOBALS['mb_cleaned'][] = is_object($post) ? $post->ID : (int) $post;
+}
