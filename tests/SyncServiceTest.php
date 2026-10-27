@@ -316,3 +316,15 @@ mb_test('retry turns old empty-content failures into skipped posts', function ()
     mb_assert_same('skipped_empty', $state->rows[9]['sync_status'], 'old empty failure not converted');
     mb_assert_same(array(), $state->failed(), 'skipped post would be retried again');
 });
+
+mb_test('a synced post emptied in the editor is removed remotely even while pending', function () {
+    $client = new MomoBirdWP_TestClient();
+    $state = new MomoBirdWP_TestStateRepository();
+    $service = mb_sync_service($client, $state);
+    $service->syncPost(mb_wp_post('<p>body</p>', 5));
+    $state->markPending(5, 'upsert');
+    $result = $service->syncPost(mb_wp_post('', 5));
+    mb_assert($result['ok'], 'emptied post reported as a failure');
+    mb_assert_same(array(array('5')), $client->deletes, 'stale document of an emptied pending post was not deleted');
+    mb_assert_same('skipped_empty', $state->rows[5]['sync_status'], 'emptied post not marked skipped');
+});

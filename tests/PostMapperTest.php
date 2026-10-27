@@ -1,17 +1,5 @@
 <?php
 
-function mb_wp_post($html, $id = 1)
-{
-    return array(
-        'ID' => $id,
-        'post_title' => 'Post ' . $id,
-        'rendered_html' => $html,
-        'permalink' => 'https://example.com/?p=' . $id,
-        'post_modified_gmt' => '2026-10-01 08:00:00',
-        'category' => '',
-    );
-}
-
 mb_test('mapper uses the post id as external id', function () {
     $mapped = MomoBirdWP_PostMapper::mapPost(mb_wp_post('<p>正文</p>', 42), 'https://example.com');
     mb_assert_same('42', $mapped['external_id'], 'external id is not the post id');

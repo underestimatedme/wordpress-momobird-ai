@@ -90,7 +90,9 @@ final class MomoBirdWP_SyncService
     {
         $existing = $this->state->forPost($postId);
         $summary = $this->summary(true, null);
-        if ($existing && $existing['sync_status'] === 'synced') {
+        // A document id means MomoBird holds a copy, whatever the row's status
+        // (a save marks it pending before this runs).
+        if ($existing && !empty($existing['document_id'])) {
             $summary = $this->deletePost($postId);
             if (!$summary['ok']) {
                 return $summary;
