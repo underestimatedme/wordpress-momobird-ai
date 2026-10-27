@@ -15,12 +15,14 @@ function mb_wp_object($id, $type, $status, $password = '')
     return $post;
 }
 
-function mb_plugin($autoSync = true)
+function mb_plugin($autoSync = true, $canFinishEarly = true)
 {
     $state = new MomoBirdWP_TestStateRepository();
     $client = new MomoBirdWP_TestClient();
     $plugin = new MomoBirdWP_Plugin($state, new MomoBirdWP_TestSource(), function () use ($client, $state, $autoSync) {
         return $autoSync ? mb_sync_service($client, $state) : null;
+    }, function () use ($canFinishEarly) {
+        return $canFinishEarly;
     });
     return array($plugin, $state, $client);
 }
@@ -37,7 +39,7 @@ function mb_hooks()
 mb_test('plugin registers its sync hooks', function () {
     $GLOBALS['mb_actions'] = array();
     MomoBirdWP_Plugin::register(MOMOBIRD_AI_TEST_FILE);
-    foreach (array('transition_post_status', 'wp_trash_post', 'before_delete_post', 'shutdown', 'momobird_ai_retry', 'activate:momobird-ai.php', 'deactivate:momobird-ai.php') as $hook) {
+    foreach (array('transition_post_status', 'wp_trash_post', 'before_delete_post', 'shutdown', 'momobird_ai_retry', 'momobird_ai_flush', 'activate:momobird-ai.php', 'deactivate:momobird-ai.php') as $hook) {
         mb_assert(in_array($hook, mb_hooks(), true), $hook . ' not registered');
     }
 });
@@ -128,4 +130,32 @@ mb_test('cron retries failures within the attempt cap', function () {
     $state->markFailure(20, 'failed_upsert', 'timeout', 'x');
     $plugin->onRetryCron();
     mb_assert_same('20', $client->upserts[0][0]['external_id'], 'failure not retried by cron');
+});
+
+mb_test('without a way to finish the response early, shutdown schedules a flush instead of pushing', function () {
+    $GLOBALS['mb_scheduled'] = array();
+    $GLOBALS['mb_cron_spawned'] = 0;
+    list($plugin, $state, $client) = mb_plugin(true, false);
+    $plugin->onTransition('publish', 'draft', mb_wp_object(40, 'post', 'publish'));
+    $plugin->onShutdown();
+    mb_assert_same(0, count($client->upserts), 'pushed while the editor waits');
+    mb_assert_same('pending_upsert', $state->rows[40]['sync_status'], 'post not left pending');
+    mb_assert(isset($GLOBALS['mb_scheduled']['momobird_ai_flush']), 'flush not scheduled');
+    mb_assert_same(1, $GLOBALS['mb_cron_spawned'], 'cron not started');
+});
+
+mb_test('the flush event pushes pending posts', function () {
+    list($plugin, $state, $client) = mb_plugin();
+    $state->markPending(41, 'upsert');
+    $state->markPending(42, 'delete');
+    $plugin->onFlushCron();
+    mb_assert_same('41', $client->upserts[0][0]['external_id'], 'pending upsert not pushed');
+    mb_assert_same(array(array('42')), $client->deletes, 'pending delete not sent');
+    mb_assert_same('synced', $state->rows[41]['sync_status'], 'pushed post not synced');
+});
+
+mb_test('deactivation also clears a scheduled flush', function () {
+    $GLOBALS['mb_scheduled'] = array('momobird_ai_flush' => array('time' => 1, 'recurrence' => false));
+    MomoBirdWP_Plugin::deactivate();
+    mb_assert_same(false, wp_next_scheduled('momobird_ai_flush'), 'flush still scheduled');
 });

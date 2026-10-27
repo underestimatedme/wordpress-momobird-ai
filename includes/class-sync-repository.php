@@ -105,6 +105,15 @@ KEY sync_status (sync_status)
         ), ARRAY_A);
     }
 
+    // pending returns every row a save marked but no push has settled yet.
+    public function pending()
+    {
+        return $this->db->get_results(
+            "SELECT * FROM {$this->table} WHERE post_id > 0 AND sync_status IN ('pending_upsert','pending_delete') ORDER BY id ASC LIMIT 200",
+            ARRAY_A
+        );
+    }
+
     public function counts()
     {
         $rows = $this->db->get_results("SELECT sync_status, COUNT(*) AS count FROM {$this->table} WHERE post_id > 0 GROUP BY sync_status", ARRAY_A);

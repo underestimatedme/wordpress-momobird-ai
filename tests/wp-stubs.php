@@ -228,3 +228,14 @@ function get_shortcode_regex($tagnames = null)
     $tagregexp = implode('|', array_map('preg_quote', $tagnames));
     return '\\[(\\[?)(' . $tagregexp . ')(?![\\w-])([^\\]\\/]*(?:\\/(?!\\])[^\\]\\/]*)*?)(?:(\\/)\\]|\\](?:([^\\[]*+(?:\\[(?!\\/\\2\\])[^\\[]*+)*+)\\[\\/\\2\\])?)(\\]?)';
 }
+
+function wp_schedule_single_event($time, $hook, $args = array())
+{
+    $GLOBALS['mb_scheduled'][$hook] = array('time' => $time, 'recurrence' => false);
+    return true;
+}
+
+function spawn_cron()
+{
+    $GLOBALS['mb_cron_spawned'] = (isset($GLOBALS['mb_cron_spawned']) ? $GLOBALS['mb_cron_spawned'] : 0) + 1;
+}

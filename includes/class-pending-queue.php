@@ -29,19 +29,21 @@ final class MomoBirdWP_PendingQueue
 
     // flush never throws: a save in WordPress must not fail because MomoBird
     // did. Failures stay in the sync state for cron and the admin to retry.
+    // When MomoBird cannot be reached the rest are left pending instead of
+    // each waiting for its own timeout.
     public function flush($sync, $load)
     {
         foreach ($this->drain() as $postId => $action) {
             try {
                 $post = $action === 'upsert' ? call_user_func($load, $postId) : null;
-                if ($post) {
-                    $sync->syncPost($post);
-                } else {
-                    $sync->deletePost($postId);
-                }
+                $result = $post ? $sync->syncPost($post) : $sync->deletePost($postId);
             } catch (Throwable $error) {
                 // SyncService records its own failures; anything else is left
                 // pending for cron to pick up.
+                continue;
+            }
+            if (empty($result['ok']) && empty($result['rejected']) && empty($result['skipped'])) {
+                break;
             }
         }
     }

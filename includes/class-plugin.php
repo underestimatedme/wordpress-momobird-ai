@@ -8,6 +8,8 @@ final class MomoBirdWP_Plugin
 {
     const OPTION = 'momobird_ai_settings';
     const RETRY_HOOK = 'momobird_ai_retry';
+    // Pushes pending posts when a save request could not finish its response first.
+    const FLUSH_HOOK = 'momobird_ai_flush';
 
     private static $instance;
 
@@ -15,16 +17,30 @@ final class MomoBirdWP_Plugin
     private $state;
     private $source;
     private $syncFactory;
+    private $finishResponse;
     private $sync = false;
 
     // $syncFactory returns the SyncService, or null when the plugin is not set
-    // up or automatic sync is off.
-    public function __construct($state, $source, $syncFactory)
+    // up or automatic sync is off. $finishResponse sends the response to the
+    // browser and returns true, or returns false where the server cannot.
+    public function __construct($state, $source, $syncFactory, $finishResponse = null)
     {
         $this->state = $state;
         $this->source = $source;
         $this->syncFactory = $syncFactory;
+        $this->finishResponse = $finishResponse ?: array(__CLASS__, 'finishResponse');
         $this->queue = new MomoBirdWP_PendingQueue();
+    }
+
+    public static function finishResponse()
+    {
+        if (function_exists('fastcgi_finish_request')) {
+            return fastcgi_finish_request();
+        }
+        if (function_exists('litespeed_finish_request')) {
+            return litespeed_finish_request();
+        }
+        return false;
     }
 
     public static function instance()
@@ -63,6 +79,7 @@ final class MomoBirdWP_Plugin
         add_action('before_delete_post', array(__CLASS__, 'handleDelete'), 10, 1);
         add_action('shutdown', array(__CLASS__, 'handleShutdown'), 0, 0);
         add_action(self::RETRY_HOOK, array(__CLASS__, 'handleRetryCron'), 10, 0);
+        add_action(self::FLUSH_HOOK, array(__CLASS__, 'handleFlushCron'), 10, 0);
     }
 
     public static function activate($networkWide = false)
@@ -85,6 +102,7 @@ final class MomoBirdWP_Plugin
     {
         // Knowledge in MomoBird and the local sync table are kept.
         wp_clear_scheduled_hook(self::RETRY_HOOK);
+        wp_clear_scheduled_hook(self::FLUSH_HOOK);
     }
 
     public static function handleTransition($new, $old, $post)
@@ -110,6 +128,11 @@ final class MomoBirdWP_Plugin
     public static function handleRetryCron()
     {
         self::instance()->onRetryCron();
+    }
+
+    public static function handleFlushCron()
+    {
+        self::instance()->onFlushCron();
     }
 
     // onTransition fires on every save, including publish → publish; only a
@@ -147,8 +170,28 @@ final class MomoBirdWP_Plugin
         if ($this->queue->isEmpty() || !($sync = $this->sync())) {
             return;
         }
-        if (function_exists('fastcgi_finish_request')) {
-            fastcgi_finish_request();
+        if (!call_user_func($this->finishResponse)) {
+            // The editor would wait for MomoBird. The rows are already pending,
+            // so let a cron request push them instead.
+            $this->queue->drain();
+            if (!wp_next_scheduled(self::FLUSH_HOOK)) {
+                wp_schedule_single_event(time(), self::FLUSH_HOOK);
+            }
+            if (function_exists('spawn_cron')) {
+                spawn_cron();
+            }
+            return;
+        }
+        $this->queue->flush($sync, array($this->source, 'load'));
+    }
+
+    public function onFlushCron()
+    {
+        if (!($sync = $this->sync())) {
+            return;
+        }
+        foreach ($this->state->pending() as $row) {
+            $this->queue->add((int) $row['post_id'], $row['sync_status'] === 'pending_delete' ? 'delete' : 'upsert');
         }
         $this->queue->flush($sync, array($this->source, 'load'));
     }

@@ -50,3 +50,27 @@ mb_test('an unexpected error while flushing does not escape', function () {
     });
     mb_assert(true, 'unreachable when flush throws');
 });
+
+mb_test('a network failure stops the flush and leaves the rest pending', function () {
+    $client = new MomoBirdWP_TestClient();
+    $client->failUpsert = new MomoBirdWP_TransportException('down');
+    $state = new MomoBirdWP_TestStateRepository();
+    $queue = new MomoBirdWP_PendingQueue();
+    foreach (array(51, 52, 53) as $id) {
+        $state->markPending($id, 'upsert');
+        $queue->add($id, 'upsert');
+    }
+    $queue->flush(mb_sync_service($client, $state), mb_queue_loader());
+    mb_assert_same(1, count($client->upserts), 'kept pushing after a network failure');
+    mb_assert_same('pending_upsert', $state->rows[52]['sync_status'], 'later post not left pending');
+});
+
+mb_test('a rejected post does not stop the flush', function () {
+    $client = new MomoBirdWP_TestClient();
+    $client->results['61'] = array('status' => 'rejected', 'error_code' => 'VALIDATION_FAILED');
+    $queue = new MomoBirdWP_PendingQueue();
+    $queue->add(61, 'upsert');
+    $queue->add(62, 'upsert');
+    $queue->flush(mb_sync_service($client, new MomoBirdWP_TestStateRepository()), mb_queue_loader());
+    mb_assert_same(2, count($client->upserts), 'a per-post rejection stopped the flush');
+});

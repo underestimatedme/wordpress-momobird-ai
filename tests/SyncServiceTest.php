@@ -65,6 +65,17 @@ class MomoBirdWP_TestStateRepository
         $this->put($postId, array('sync_status' => $status, 'last_error_code' => $code, 'last_error_message' => $message, 'attempts' => $attempts + 1));
     }
 
+    public function pending()
+    {
+        $out = array();
+        foreach ($this->rows as $row) {
+            if (strpos($row['sync_status'], 'pending_') === 0) {
+                $out[] = $row;
+            }
+        }
+        return $out;
+    }
+
     public function markPending($postId, $action)
     {
         $this->put($postId, array('sync_status' => 'pending_' . $action));
