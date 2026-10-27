@@ -20,3 +20,4 @@ define('MOMOBIRD_AI_FILE', __FILE__);
 require_once __DIR__ . '/includes/bootstrap.php';
 
 MomoBirdWP_Plugin::register(__FILE__);
+MomoBirdWP_Admin::register();

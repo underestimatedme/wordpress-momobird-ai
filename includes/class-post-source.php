@@ -50,6 +50,25 @@ final class MomoBirdWP_PostSource
         );
     }
 
+    // find is load under the name MomoBirdWP_FullSyncRun and retries use.
+    public function find($postId)
+    {
+        return $this->load($postId);
+    }
+
+    // page returns up to $limit public posts with ids above $afterId, in id order.
+    public function page($afterId, $limit)
+    {
+        $posts = array();
+        foreach ($this->publicIdsAfter($afterId, $limit) as $postId) {
+            $post = $this->load($postId);
+            if ($post !== null) {
+                $posts[] = $post;
+            }
+        }
+        return $posts;
+    }
+
     // publicIdsAfter pages through public post ids in ascending order.
     public function publicIdsAfter($afterId, $limit)
     {

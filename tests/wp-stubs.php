@@ -166,3 +166,19 @@ class MomoBirdWP_TestWpdb
         return 'DEFAULT CHARSET=utf8mb4';
     }
 }
+
+function current_user_can($capability)
+{
+    return !empty($GLOBALS['mb_can'][$capability]);
+}
+
+function register_rest_route($namespace, $route, $args)
+{
+    $GLOBALS['mb_routes'][$namespace . $route] = $args;
+    return true;
+}
+
+function add_settings_error($setting, $code, $message, $type = 'error')
+{
+    $GLOBALS['mb_settings_errors'][] = array($setting, $code, $message, $type);
+}

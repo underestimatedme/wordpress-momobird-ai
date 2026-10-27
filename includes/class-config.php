@@ -72,6 +72,19 @@ final class MomoBirdWP_Config
         }
     }
 
+    // defaults are the form values before any settings are saved.
+    public static function defaults()
+    {
+        return array(
+            'base_url' => 'https://api.valley.atlaspaces.com',
+            'connection_key' => '',
+            'timeout' => 10,
+            'enabled' => '1',
+            'widget_enabled' => '0',
+            'podcast_enabled' => '1'
+        );
+    }
+
     public function baseUrl()
     {
         return $this->baseUrl;
