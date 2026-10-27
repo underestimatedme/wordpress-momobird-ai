@@ -90,6 +90,12 @@ final class MomoBirdWP_AdminController
                 }
                 return $page;
 
+            case 'enable-widget':
+                if (!isset($this->statusContext['enable_widget']) || !is_callable($this->statusContext['enable_widget'])) {
+                    throw new InvalidArgumentException('The assistant cannot be enabled here');
+                }
+                return array_merge(array('ok' => true), call_user_func($this->statusContext['enable_widget']));
+
             case 'retry-failures':
                 return $this->sync->retryFailures(array($this->posts, 'find'), false);
 

@@ -15,3 +15,6 @@ require_once __DIR__ . '/class-full-sync.php';
 require_once __DIR__ . '/class-admin-controller.php';
 require_once __DIR__ . '/class-rest.php';
 require_once __DIR__ . '/class-admin.php';
+require_once __DIR__ . '/class-widget-state.php';
+require_once __DIR__ . '/class-podcast-player.php';
+require_once __DIR__ . '/class-frontend.php';

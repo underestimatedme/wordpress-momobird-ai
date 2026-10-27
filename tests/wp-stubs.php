@@ -182,3 +182,26 @@ function add_settings_error($setting, $code, $message, $type = 'error')
 {
     $GLOBALS['mb_settings_errors'][] = array($setting, $code, $message, $type);
 }
+
+$GLOBALS['mb_page'] = array('singular' => false, 'loop' => false, 'main' => false);
+
+function is_singular($type = '')
+{
+    return !empty($GLOBALS['mb_page']['singular']);
+}
+
+function in_the_loop()
+{
+    return !empty($GLOBALS['mb_page']['loop']);
+}
+
+function is_main_query()
+{
+    return !empty($GLOBALS['mb_page']['main']);
+}
+
+function get_post($post = null)
+{
+    $id = $post === null ? (isset($GLOBALS['mb_current_post']) ? $GLOBALS['mb_current_post'] : 0) : (is_object($post) ? $post->ID : (int) $post);
+    return isset($GLOBALS['mb_posts'][$id]) ? $GLOBALS['mb_posts'][$id] : null;
+}

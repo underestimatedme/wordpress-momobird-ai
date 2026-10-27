@@ -16,6 +16,10 @@ final class MomoBirdWP_Admin
         add_action('admin_init', array(__CLASS__, 'registerSettings'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
         add_action('rest_api_init', array('MomoBirdWP_Rest', 'registerRoutes'));
+        add_action('update_option_' . MomoBirdWP_Plugin::OPTION, array('MomoBirdWP_Frontend', 'applySettings'), 10, 2);
+        add_action('add_option_' . MomoBirdWP_Plugin::OPTION, function ($name, $value) {
+            MomoBirdWP_Frontend::applySettings(array(), $value);
+        }, 10, 2);
     }
 
     public static function addPage()
@@ -71,11 +75,28 @@ final class MomoBirdWP_Admin
         $client = $config ? new MomoBirdWP_HttpClient($config) : null;
         $sync = $client ? new MomoBirdWP_SyncService($client, $state, home_url('/')) : null;
         $fullRun = $sync ? new MomoBirdWP_FullSyncRun($posts, $sync, $state, $client) : null;
-        return new MomoBirdWP_AdminController($client, $posts, $state, $sync, $fullRun, array(
+        $now = time();
+        $context = array(
             'configured' => $config !== null,
             'auto_sync_enabled' => $config !== null && $config->autoSync(),
             'site_origin' => home_url('/'),
-        ));
+            // Testing the connection also tells the podcast player its source id.
+            'on_status' => function ($status) use ($now) {
+                MomoBirdWP_Frontend::podcastPlayer()->rememberStatus($status, $now);
+            },
+        );
+        if ($client !== null) {
+            $context['enable_widget'] = function () use ($client, $now) {
+                return MomoBirdWP_Frontend::widgetState()->enable($client, $now);
+            };
+        }
+        $afterFullSync = null;
+        if ($client !== null && $config->widgetEnabled()) {
+            $afterFullSync = function () use ($client, $now) {
+                return MomoBirdWP_Frontend::widgetState()->ensureEnabled($client, $now);
+            };
+        }
+        return new MomoBirdWP_AdminController($client, $posts, $state, $sync, $fullRun, $context, $afterFullSync);
     }
 
     public static function render()

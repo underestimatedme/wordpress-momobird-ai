@@ -38,6 +38,8 @@ function mb_assert_throws($callback, $className)
 }
 
 
+const MB_TEST_SOURCE_ID = '01a16017-e335-75b8-ae8c-bf4dbaba5f1d';
+
 function mb_key($fill = 'A')
 {
     return 'mbk_' . str_repeat($fill, 43);

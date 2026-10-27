@@ -21,3 +21,4 @@ require_once __DIR__ . '/includes/bootstrap.php';
 
 MomoBirdWP_Plugin::register(__FILE__);
 MomoBirdWP_Admin::register();
+MomoBirdWP_Frontend::register();

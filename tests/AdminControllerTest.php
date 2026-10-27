@@ -234,3 +234,22 @@ mb_test('test connection never returns the connection key', function () {
     $result = mb_admin_controller(new MomoBirdWP_AdminTestClient())->dispatch('test-connection', array());
     mb_assert(strpos(json_encode($result), 'mbk_') === false, 'connection key in admin response');
 });
+
+mb_test('enable widget runs the configured action', function () {
+    $called = 0;
+    $controller = new MomoBirdWP_AdminController(
+        new MomoBirdWP_AdminTestClient(),
+        new MomoBirdWP_AdminTestPosts(),
+        new MomoBirdWP_AdminTestState(),
+        new MomoBirdWP_AdminTestSync(),
+        new MomoBirdWP_AdminTestFullRun(),
+        array('configured' => true, 'enable_widget' => function () use (&$called) {
+            $called++;
+            return array('public_id' => 'pub_1', 'available' => true, 'reason' => 'ok');
+        })
+    );
+    $result = $controller->dispatch('enable-widget', array());
+    mb_assert_same(1, $called, 'enable action not called');
+    mb_assert_same(true, $result['available'], 'widget state not returned');
+    mb_assert_same(true, $result['ok'], 'ok flag missing');
+});
