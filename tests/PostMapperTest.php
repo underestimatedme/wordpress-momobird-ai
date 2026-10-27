@@ -70,3 +70,11 @@ mb_test('primary category is cut to 64 characters', function () {
     $cats = array(array('id' => 3, 'name' => '  ' . str_repeat('类', 65) . ' '));
     mb_assert_same(str_repeat('类', 64), MomoBirdWP_PostMapper::primaryCategory($cats, 0, 1), 'category not trimmed and cut');
 });
+
+mb_test('mapper keeps a title with invalid utf-8 bytes', function () {
+    $post = mb_wp_post('<p>正文</p>', 8);
+    $post['post_title'] = "bad \xC3\x28 title";
+    $mapped = MomoBirdWP_PostMapper::mapPost($post, 'https://example.com');
+    mb_assert(mb_check_encoding($mapped['title'], 'UTF-8'), 'title is not valid utf-8');
+    mb_assert(strpos($mapped['title'], 'bad') === 0 && strpos($mapped['title'], 'title') !== false, 'title text lost: ' . $mapped['title']);
+});
