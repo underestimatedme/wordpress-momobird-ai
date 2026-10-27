@@ -328,3 +328,26 @@ mb_test('a synced post emptied in the editor is removed remotely even while pend
     mb_assert_same(array(array('5')), $client->deletes, 'stale document of an emptied pending post was not deleted');
     mb_assert_same('skipped_empty', $state->rows[5]['sync_status'], 'emptied post not marked skipped');
 });
+
+mb_test('an unchanged save puts a pending row back to synced', function () {
+    $client = new MomoBirdWP_TestClient();
+    $state = new MomoBirdWP_TestStateRepository();
+    $service = mb_sync_service($client, $state);
+    $service->syncPost(mb_wp_post('<p>body</p>', 1));
+    $state->markPending(1, 'upsert');
+    $service->syncPost(mb_wp_post('<p>body</p>', 1));
+    mb_assert_same('synced', $state->rows[1]['sync_status'], 'unchanged save left the post pending');
+    mb_assert_same('doc-1', $state->rows[1]['document_id'], 'document id lost');
+});
+
+mb_test('a category-only change is pushed', function () {
+    $client = new MomoBirdWP_TestClient();
+    $state = new MomoBirdWP_TestStateRepository();
+    $service = mb_sync_service($client, $state);
+    $service->syncPost(mb_wp_post('<p>body</p>', 2));
+    $moved = mb_wp_post('<p>body</p>', 2);
+    $moved['category'] = '教程';
+    $service->syncPost($moved);
+    mb_assert_same(2, count($client->upserts), 'category change not pushed');
+    mb_assert_same('教程', $client->upserts[1][0]['category'], 'new category not sent');
+});

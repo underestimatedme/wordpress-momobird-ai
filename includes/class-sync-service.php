@@ -33,6 +33,9 @@ final class MomoBirdWP_SyncService
         // A pending row keeps the hash it was synced with, so an edit that changed nothing is not re-sent.
         if ($existing && in_array($existing['sync_status'], array('synced', 'pending_upsert'), true)
             && $existing['content_hash'] === self::hash($mapped)) {
+            if ($existing['sync_status'] === 'pending_upsert') {
+                $this->state->saveSynced($postId, (string) $existing['document_id'], $existing['content_hash']);
+            }
             $summary = $this->summary(true, null);
             $summary['unchanged'] = 1;
             return $summary;
@@ -209,7 +212,9 @@ final class MomoBirdWP_SyncService
 
     private static function hash(array $mapped)
     {
-        return hash('sha256', $mapped['title'] . "\0" . $mapped['content'] . "\0" . $mapped['url']);
+        // The category is part of what MomoBird stores, so moving a post re-sends it.
+        $category = isset($mapped['category']) ? $mapped['category'] : '';
+        return hash('sha256', $mapped['title'] . "\0" . $mapped['content'] . "\0" . $mapped['url'] . "\0" . $category);
     }
 
     private function merge(array $total, array $part)
