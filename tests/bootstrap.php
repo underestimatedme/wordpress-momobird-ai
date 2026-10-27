@@ -48,4 +48,6 @@ if (!defined('ABSPATH')) {
 }
 
 require_once __DIR__ . '/wp-stubs.php';
+define('MOMOBIRD_AI_TEST_FILE', dirname(__DIR__) . '/momobird-ai.php');
+define('MOMOBIRD_AI_FILE', MOMOBIRD_AI_TEST_FILE);
 require_once dirname(__DIR__) . '/includes/bootstrap.php';

@@ -9,3 +9,5 @@ require_once __DIR__ . '/class-http-client.php';
 require_once __DIR__ . '/class-sync-repository.php';
 require_once __DIR__ . '/class-sync-service.php';
 require_once __DIR__ . '/class-post-source.php';
+require_once __DIR__ . '/class-pending-queue.php';
+require_once __DIR__ . '/class-plugin.php';
