@@ -38,6 +38,11 @@ function mb_assert_throws($callback, $className)
 }
 
 
+function mb_key($fill = 'A')
+{
+    return 'mbk_' . str_repeat($fill, 43);
+}
+
 if (!defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/');
 }
