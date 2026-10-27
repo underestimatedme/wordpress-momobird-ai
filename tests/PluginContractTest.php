@@ -6,6 +6,11 @@ class MomoBirdWP_TestSource
     {
         return mb_wp_post('<p>body ' . $id . '</p>', $id);
     }
+
+    public function isPublicNow($id)
+    {
+        return true;
+    }
 }
 
 function mb_wp_object($id, $type, $status, $password = '')
